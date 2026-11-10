@@ -25,7 +25,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MobileOBSApp()
+            MobileOBSTheme {
+                MobileOBSApp()
+            }
         }
     }
 }
@@ -34,94 +36,87 @@ class MainActivity : ComponentActivity() {
 fun MobileOBSApp() {
     var selectedTab by remember { mutableStateOf("Studio") }
 
-    MaterialTheme(
-        colorScheme = darkColorScheme(
-            primary = Accent,
-            background = Background,
-            surface = Panel
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Background)
-                .padding(16.dp)
+        Text(
+            text = "Mobile OBS",
+            fontSize = 27.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Text(
+            text = "Your mobile streaming studio",
+            color = Color.Gray,
+            fontSize = 13.sp
+        )
+
+        Spacer(modifier = Modifier.height(22.dp))
+
+        PreviewPanel()
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "SCENES",
+            color = Color.LightGray,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "Mobile OBS",
-                fontSize = 27.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
+            SceneButton("Starting Soon")
+            SceneButton("Gameplay")
+            SceneButton("BRB")
+        }
 
-            Text(
-                text = "Your mobile streaming studio",
-                color = Color.Gray,
-                fontSize = 13.sp
-            )
+        Spacer(modifier = Modifier.height(18.dp))
 
-            Spacer(modifier = Modifier.height(22.dp))
+        Text(
+            text = "STREAMING",
+            color = Color.LightGray,
+            fontWeight = FontWeight.Bold
+        )
 
-            PreviewPanel()
+        Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            PlatformButton("TikTok", Modifier.weight(1f))
+            PlatformButton("YouTube", Modifier.weight(1f))
+            PlatformButton("Twitch", Modifier.weight(1f))
+        }
 
-            Text(
-                text = "SCENES",
-                color = Color.LightGray,
-                fontWeight = FontWeight.Bold
-            )
+        Spacer(modifier = Modifier.weight(1f))
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SceneButton("Starting Soon")
-                SceneButton("Gameplay")
-                SceneButton("BRB")
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            Text(
-                text = "STREAMING",
-                color = Color.LightGray,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                PlatformButton("TikTok", Modifier.weight(1f))
-                PlatformButton("YouTube", Modifier.weight(1f))
-                PlatformButton("Twitch", Modifier.weight(1f))
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                listOf("Studio", "Scenes", "Sources", "Settings")
-                    .forEach { tab ->
-                        TextButton(onClick = { selectedTab = tab }) {
-                            Text(
-                                text = tab,
-                                color = if (selectedTab == tab) {
-                                    Accent
-                                } else {
-                                    Color.Gray
-                                }
-                            )
-                        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            listOf("Studio", "Scenes", "Sources", "Settings")
+                .forEach { tab ->
+                    TextButton(
+                        onClick = { selectedTab = tab }
+                    ) {
+                        Text(
+                            text = tab,
+                            color = if (selectedTab == tab) {
+                                Accent
+                            } else {
+                                Color.Gray
+                            }
+                        )
                     }
-            }
+                }
         }
     }
 }
@@ -137,11 +132,7 @@ fun PreviewPanel() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            "LIVE PREVIEW",
-            color = Accent,
-            fontSize = 12.sp
-        )
+        Text("LIVE PREVIEW", color = Accent, fontSize = 12.sp)
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -152,11 +143,7 @@ fun PreviewPanel() {
             fontWeight = FontWeight.Bold
         )
 
-        Text(
-            "No source added",
-            color = Color.Gray,
-            fontSize = 12.sp
-        )
+        Text("No source added", color = Color.Gray, fontSize = 12.sp)
     }
 }
 
@@ -170,11 +157,7 @@ fun SceneButton(name: String) {
         shape = RoundedCornerShape(10.dp),
         contentPadding = PaddingValues(10.dp)
     ) {
-        Text(
-            name,
-            color = Color.White,
-            fontSize = 11.sp
-        )
+        Text(name, color = Color.White, fontSize = 11.sp)
     }
 }
 
@@ -191,9 +174,6 @@ fun PlatformButton(
         ),
         contentPadding = PaddingValues(8.dp)
     ) {
-        Text(
-            name,
-            fontSize = 10.sp
-        )
+        Text(name, fontSize = 10.sp)
     }
 }
