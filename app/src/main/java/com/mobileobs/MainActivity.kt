@@ -6,6 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,7 +36,39 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MobileOBSApp() {
-    var selectedTab by remember { mutableStateOf("Studio") }
+    val sceneManager = remember { SceneManager() }
+
+    var scenes by remember {
+        mutableStateOf(sceneManager.getScenes())
+    }
+
+    var selectedSceneId by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var selectedTab by remember {
+        mutableStateOf("Studio")
+    }
+
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var renameSceneId by remember { mutableStateOf<String?>(null) }
+    var sceneName by remember { mutableStateOf("") }
+
+    fun refreshScenes() {
+        scenes = sceneManager.getScenes()
+        selectedSceneId = sceneManager.getActiveScene()?.id
+    }
+
+    LaunchedEffect(Unit) {
+        listOf("Starting Soon", "Gameplay", "Be Right Back")
+            .forEach { name ->
+                if (sceneManager.getScenes().none { it.name == name }) {
+                    sceneManager.createScene(name)
+                }
+            }
+
+        refreshScenes()
+    }
 
     Column(
         modifier = Modifier
@@ -43,60 +77,204 @@ fun MobileOBSApp() {
             .padding(16.dp)
     ) {
         Text(
-            text = "Mobile OBS",
+            "Mobile OBS",
             fontSize = 27.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
 
         Text(
-            text = "Your mobile streaming studio",
+            "Your mobile streaming studio",
             color = Color.Gray,
             fontSize = 13.sp
         )
 
-        Spacer(modifier = Modifier.height(22.dp))
-
-        PreviewPanel()
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "SCENES",
-            color = Color.LightGray,
-            fontWeight = FontWeight.Bold
-        )
+        when (selectedTab) {
+            "Studio" -> {
+                PreviewPanel(
+                    sceneName = scenes.find {
+                        it.id == selectedSceneId
+                    }?.name ?: "No scene selected"
+                )
 
-        Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            SceneButton("Starting Soon")
-            SceneButton("Gameplay")
-            SceneButton("BRB")
+                Text(
+                    "ACTIVE SCENE",
+                    color = Color.LightGray,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    scenes.find { it.id == selectedSceneId }?.name
+                        ?: "None",
+                    color = Accent
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text("STREAMING", color = Color.LightGray)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf("TikTok", "YouTube", "Twitch").forEach {
+                        PlatformButton(
+                            it,
+                            Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    "Streaming engine will be connected during the next integration stages.",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
+
+            "Scenes" -> {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "My Scenes",
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Button(
+                        onClick = {
+                            sceneName = ""
+                            showCreateDialog = true
+                        }
+                    ) {
+                        Text("+ Create")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(scenes, key = { it.id }) { scene ->
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = Panel
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        scene.name,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f)
+                                    )
+
+                                    if (scene.id == selectedSceneId) {
+                                        Text(
+                                            "ACTIVE",
+                                            color = Accent,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            sceneManager.switchScene(scene.id)
+                                            refreshScenes()
+                                        }
+                                    ) {
+                                        Text("Select")
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            sceneName = scene.name
+                                            renameSceneId = scene.id
+                                        }
+                                    ) {
+                                        Text("Rename")
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            sceneManager.duplicateScene(scene.id)
+                                            refreshScenes()
+                                        }
+                                    ) {
+                                        Text("Copy")
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = {
+                                            sceneManager.deleteScene(scene.id)
+                                            refreshScenes()
+                                        }
+                                    ) {
+                                        Text("Delete")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            "Sources" -> {
+                Text(
+                    "Sources",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    "Screen capture, camera, images, text and overlays will be connected here.",
+                    color = Color.Gray
+                )
+            }
+
+            "Settings" -> {
+                Text(
+                    "Settings",
+                    color = Color.White,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    "Streaming quality, resolution, frame rate and audio settings will be connected here.",
+                    color = Color.Gray
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = "STREAMING",
-            color = Color.LightGray,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            PlatformButton("TikTok", Modifier.weight(1f))
-            PlatformButton("YouTube", Modifier.weight(1f))
-            PlatformButton("Twitch", Modifier.weight(1f))
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
+        HorizontalDivider(color = Panel)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -108,21 +286,87 @@ fun MobileOBSApp() {
                         onClick = { selectedTab = tab }
                     ) {
                         Text(
-                            text = tab,
-                            color = if (selectedTab == tab) {
-                                Accent
-                            } else {
-                                Color.Gray
-                            }
+                            tab,
+                            color = if (selectedTab == tab) Accent else Color.Gray
                         )
                     }
                 }
         }
     }
+
+    if (showCreateDialog) {
+        AlertDialog(
+            onDismissRequest = { showCreateDialog = false },
+            title = { Text("Create Scene") },
+            text = {
+                OutlinedTextField(
+                    value = sceneName,
+                    onValueChange = { sceneName = it },
+                    label = { Text("Scene name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (sceneManager.createScene(sceneName) != null) {
+                            refreshScenes()
+                            showCreateDialog = false
+                        }
+                    }
+                ) {
+                    Text("Create")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showCreateDialog = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (renameSceneId != null) {
+        AlertDialog(
+            onDismissRequest = { renameSceneId = null },
+            title = { Text("Rename Scene") },
+            text = {
+                OutlinedTextField(
+                    value = sceneName,
+                    onValueChange = { sceneName = it },
+                    label = { Text("New scene name") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        sceneManager.renameScene(
+                            renameSceneId!!,
+                            sceneName
+                        )
+                        refreshScenes()
+                        renameSceneId = null
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { renameSceneId = null }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-fun PreviewPanel() {
+fun PreviewPanel(sceneName: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -137,27 +381,17 @@ fun PreviewPanel() {
         Spacer(modifier = Modifier.height(12.dp))
 
         Text(
-            "Your stream preview",
+            sceneName,
             color = Color.White,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
 
-        Text("No source added", color = Color.Gray, fontSize = 12.sp)
-    }
-}
-
-@Composable
-fun SceneButton(name: String) {
-    Button(
-        onClick = {},
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Panel
-        ),
-        shape = RoundedCornerShape(10.dp),
-        contentPadding = PaddingValues(10.dp)
-    ) {
-        Text(name, color = Color.White, fontSize = 11.sp)
+        Text(
+            "Preview rendering will be connected later",
+            color = Color.Gray,
+            fontSize = 12.sp
+        )
     }
 }
 
