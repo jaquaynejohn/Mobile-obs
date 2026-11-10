@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,38 +37,39 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MobileOBSApp() {
-    val sceneManager = remember { SceneManager() }
+    val context = LocalContext.current
+
+    val sceneManager = remember {
+        SceneManager(context.applicationContext)
+    }
 
     var scenes by remember {
         mutableStateOf(sceneManager.getScenes())
     }
 
     var selectedSceneId by remember {
-        mutableStateOf<String?>(null)
+        mutableStateOf(sceneManager.getActiveScene()?.id)
     }
 
     var selectedTab by remember {
         mutableStateOf("Studio")
     }
 
-    var showCreateDialog by remember { mutableStateOf(false) }
-    var renameSceneId by remember { mutableStateOf<String?>(null) }
-    var sceneName by remember { mutableStateOf("") }
+    var showCreateDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var renameSceneId by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var sceneName by remember {
+        mutableStateOf("")
+    }
 
     fun refreshScenes() {
         scenes = sceneManager.getScenes()
         selectedSceneId = sceneManager.getActiveScene()?.id
-    }
-
-    LaunchedEffect(Unit) {
-        listOf("Starting Soon", "Gameplay", "Be Right Back")
-            .forEach { name ->
-                if (sceneManager.getScenes().none { it.name == name }) {
-                    sceneManager.createScene(name)
-                }
-            }
-
-        refreshScenes()
     }
 
     Column(
@@ -77,14 +79,14 @@ fun MobileOBSApp() {
             .padding(16.dp)
     ) {
         Text(
-            "Mobile OBS",
+            text = "Mobile OBS",
             fontSize = 27.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
 
         Text(
-            "Your mobile streaming studio",
+            text = "Your mobile streaming studio",
             color = Color.Gray,
             fontSize = 13.sp
         )
@@ -108,14 +110,21 @@ fun MobileOBSApp() {
                 )
 
                 Text(
-                    scenes.find { it.id == selectedSceneId }?.name
-                        ?: "None",
+                    scenes.find {
+                        it.id == selectedSceneId
+                    }?.name ?: "None",
                     color = Accent
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("STREAMING", color = Color.LightGray)
+                Text(
+                    "STREAMING",
+                    color = Color.LightGray,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -123,16 +132,28 @@ fun MobileOBSApp() {
                 ) {
                     listOf("TikTok", "YouTube", "Twitch").forEach {
                         PlatformButton(
-                            it,
-                            Modifier.weight(1f)
+                            name = it,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                Button(
+                    onClick = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE53935)
+                    )
+                ) {
+                    Text("START STREAM")
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
-                    "Streaming engine will be connected during the next integration stages.",
+                    "Streaming engine is not connected yet.",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
@@ -167,12 +188,16 @@ fun MobileOBSApp() {
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(scenes, key = { it.id }) { scene ->
+                    items(
+                        items = scenes,
+                        key = { it.id }
+                    ) { scene ->
+
                         Card(
+                            modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(
                                 containerColor = Panel
-                            ),
-                            modifier = Modifier.fillMaxWidth()
+                            )
                         ) {
                             Column(
                                 modifier = Modifier.padding(12.dp)
@@ -181,7 +206,7 @@ fun MobileOBSApp() {
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        scene.name,
+                                        text = scene.name,
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.weight(1f)
@@ -199,42 +224,51 @@ fun MobileOBSApp() {
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Button(
                                         onClick = {
                                             sceneManager.switchScene(scene.id)
                                             refreshScenes()
-                                        }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(4.dp)
                                     ) {
-                                        Text("Select")
+                                        Text("Select", fontSize = 10.sp)
                                     }
 
                                     OutlinedButton(
                                         onClick = {
                                             sceneName = scene.name
                                             renameSceneId = scene.id
-                                        }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(4.dp)
                                     ) {
-                                        Text("Rename")
+                                        Text("Rename", fontSize = 10.sp)
                                     }
 
                                     OutlinedButton(
                                         onClick = {
                                             sceneManager.duplicateScene(scene.id)
                                             refreshScenes()
-                                        }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(4.dp)
                                     ) {
-                                        Text("Copy")
+                                        Text("Copy", fontSize = 10.sp)
                                     }
 
                                     OutlinedButton(
                                         onClick = {
                                             sceneManager.deleteScene(scene.id)
                                             refreshScenes()
-                                        }
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(4.dp)
                                     ) {
-                                        Text("Delete")
+                                        Text("Delete", fontSize = 10.sp)
                                     }
                                 }
                             }
@@ -251,8 +285,10 @@ fun MobileOBSApp() {
                     fontWeight = FontWeight.Bold
                 )
 
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
-                    "Screen capture, camera, images, text and overlays will be connected here.",
+                    "Screen capture, camera, images, text, browser overlays and chat will be connected here.",
                     color = Color.Gray
                 )
             }
@@ -264,6 +300,8 @@ fun MobileOBSApp() {
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     "Streaming quality, resolution, frame rate and audio settings will be connected here.",
@@ -280,29 +318,43 @@ fun MobileOBSApp() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            listOf("Studio", "Scenes", "Sources", "Settings")
-                .forEach { tab ->
-                    TextButton(
-                        onClick = { selectedTab = tab }
-                    ) {
-                        Text(
-                            tab,
-                            color = if (selectedTab == tab) Accent else Color.Gray
-                        )
+            listOf("Studio", "Scenes", "Sources", "Settings").forEach { tab ->
+                TextButton(
+                    onClick = {
+                        selectedTab = tab
                     }
+                ) {
+                    Text(
+                        text = tab,
+                        color = if (selectedTab == tab) Accent else Color.Gray,
+                        fontWeight = if (selectedTab == tab) {
+                            FontWeight.Bold
+                        } else {
+                            FontWeight.Normal
+                        }
+                    )
                 }
+            }
         }
     }
 
     if (showCreateDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateDialog = false },
-            title = { Text("Create Scene") },
+            onDismissRequest = {
+                showCreateDialog = false
+            },
+            title = {
+                Text("Create Scene")
+            },
             text = {
                 OutlinedTextField(
                     value = sceneName,
-                    onValueChange = { sceneName = it },
-                    label = { Text("Scene name") },
+                    onValueChange = {
+                        sceneName = it
+                    },
+                    label = {
+                        Text("Scene name")
+                    },
                     singleLine = true
                 )
             },
@@ -320,7 +372,9 @@ fun MobileOBSApp() {
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showCreateDialog = false }
+                    onClick = {
+                        showCreateDialog = false
+                    }
                 ) {
                     Text("Cancel")
                 }
@@ -330,25 +384,33 @@ fun MobileOBSApp() {
 
     if (renameSceneId != null) {
         AlertDialog(
-            onDismissRequest = { renameSceneId = null },
-            title = { Text("Rename Scene") },
+            onDismissRequest = {
+                renameSceneId = null
+            },
+            title = {
+                Text("Rename Scene")
+            },
             text = {
                 OutlinedTextField(
                     value = sceneName,
-                    onValueChange = { sceneName = it },
-                    label = { Text("New scene name") },
+                    onValueChange = {
+                        sceneName = it
+                    },
+                    label = {
+                        Text("New scene name")
+                    },
                     singleLine = true
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        sceneManager.renameScene(
-                            renameSceneId!!,
-                            sceneName
-                        )
-                        refreshScenes()
-                        renameSceneId = null
+                        val id = renameSceneId
+
+                        if (id != null && sceneManager.renameScene(id, sceneName)) {
+                            refreshScenes()
+                            renameSceneId = null
+                        }
                     }
                 ) {
                     Text("Save")
@@ -356,7 +418,9 @@ fun MobileOBSApp() {
             },
             dismissButton = {
                 TextButton(
-                    onClick = { renameSceneId = null }
+                    onClick = {
+                        renameSceneId = null
+                    }
                 ) {
                     Text("Cancel")
                 }
@@ -376,7 +440,11 @@ fun PreviewPanel(sceneName: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("LIVE PREVIEW", color = Accent, fontSize = 12.sp)
+        Text(
+            "LIVE PREVIEW",
+            color = Accent,
+            fontSize = 12.sp
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
