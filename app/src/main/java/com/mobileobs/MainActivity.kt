@@ -74,7 +74,10 @@ fun MobileOBSApp() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 SceneButton("Starting Soon")
                 SceneButton("Gameplay")
                 SceneButton("BRB")
@@ -90,10 +93,13 @@ fun MobileOBSApp() {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                PlatformButton("TikTok")
-                PlatformButton("YouTube")
-                PlatformButton("Twitch")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                PlatformButton("TikTok", Modifier.weight(1f))
+                PlatformButton("YouTube", Modifier.weight(1f))
+                PlatformButton("Twitch", Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -107,8 +113,11 @@ fun MobileOBSApp() {
                         TextButton(onClick = { selectedTab = tab }) {
                             Text(
                                 text = tab,
-                                color = if (selectedTab == tab)
-                                    Accent else Color.Gray
+                                color = if (selectedTab == tab) {
+                                    Accent
+                                } else {
+                                    Color.Gray
+                                }
                             )
                         }
                     }
@@ -128,7 +137,11 @@ fun PreviewPanel() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("LIVE PREVIEW", color = Accent, fontSize = 12.sp)
+        Text(
+            "LIVE PREVIEW",
+            color = Accent,
+            fontSize = 12.sp
+        )
 
         Spacer(modifier = Modifier.height(12.dp))
 
@@ -139,7 +152,11 @@ fun PreviewPanel() {
             fontWeight = FontWeight.Bold
         )
 
-        Text("No source added", color = Color.Gray, fontSize = 12.sp)
+        Text(
+            "No source added",
+            color = Color.Gray,
+            fontSize = 12.sp
+        )
     }
 }
 
@@ -153,20 +170,30 @@ fun SceneButton(name: String) {
         shape = RoundedCornerShape(10.dp),
         contentPadding = PaddingValues(10.dp)
     ) {
-        Text(name, color = Color.White, fontSize = 11.sp)
+        Text(
+            name,
+            color = Color.White,
+            fontSize = 11.sp
+        )
     }
 }
 
 @Composable
-fun PlatformButton(name: String) {
+fun PlatformButton(
+    name: String,
+    modifier: Modifier = Modifier
+) {
     Button(
         onClick = {},
-        modifier = Modifier.weight(1f),
+        modifier = modifier,
         colors = ButtonDefaults.buttonColors(
             containerColor = Accent
         ),
         contentPadding = PaddingValues(8.dp)
     ) {
-        Text(name, fontSize = 10.sp)
+        Text(
+            name,
+            fontSize = 10.sp
+        )
     }
 }
