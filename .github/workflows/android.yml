@@ -5,9 +5,11 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
   workflow_dispatch:
 
 permissions:
@@ -33,22 +35,28 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
-      - name: Set up Gradle 8.13
-        uses: gradle/actions/setup-gradle@v5
-        with:
-          gradle-version: '8.13'
-
       - name: Verify Android SDK
         run: |
+          echo "Checking Android SDK..."
+          echo "ANDROID_HOME=$ANDROID_HOME"
           sdkmanager --version
           adb version
 
-      - name: Build Debug APK
-        run: gradle --no-daemon assembleDebug
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
 
-      - name: Upload APK
+      - name: Verify Gradle
+        run: gradle --version
+
+      - name: Build Debug APK
+        run: gradle --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true assembleDebug
+
+      - name: Upload Mobile OBS APK
         uses: actions/upload-artifact@v4
         with:
           name: MobileOBS-Debug-APK
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 14
