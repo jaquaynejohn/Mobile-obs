@@ -1,6 +1,11 @@
 
 package com.mobileobs
 
+import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.UUID
+
 enum class SourceType {
     SCREEN_CAPTURE,
     CAMERA,
@@ -17,13 +22,19 @@ data class OBSSource(
     var enabled: Boolean = true
 )
 
-class SourceManager {
+class SourceManager(context: Context) {
+
+    private val preferences = context.applicationContext
+        .getSharedPreferences("mobile_obs_sources", Context.MODE_PRIVATE)
 
     private val sources = mutableListOf<OBSSource>()
-    private var nextId = 1
+
+    init {
+        loadSources()
+    }
 
     fun getSources(): List<OBSSource> {
-        return sources.toList()
+        return sources.map { it.copy() }
     }
 
     fun addSource(
@@ -34,12 +45,13 @@ class SourceManager {
 
         sources.add(
             OBSSource(
-                id = (nextId++).toString(),
+                id = UUID.randomUUID().toString(),
                 name = name.trim(),
                 type = type
             )
         )
 
+        saveSources()
         return true
     }
 
@@ -54,6 +66,8 @@ class SourceManager {
         } ?: return false
 
         source.name = newName.trim()
+
+        saveSources()
         return true
     }
 
@@ -63,16 +77,71 @@ class SourceManager {
         } ?: return false
 
         source.enabled = !source.enabled
+
+        saveSources()
         return true
     }
 
     fun deleteSource(id: String): Boolean {
-        return sources.removeAll {
+        val removed = sources.removeAll {
             it.id == id
         }
+
+        if (removed) saveSources()
+
+        return removed
     }
 
     fun clearSources() {
         sources.clear()
+        saveSources()
+    }
+
+    private fun saveSources() {
+        val array = JSONArray()
+
+        sources.forEach { source ->
+            array.put(
+                JSONObject().apply {
+                    put("id", source.id)
+                    put("name", source.name)
+                    put("type", source.type.name)
+                    put("enabled", source.enabled)
+                }
+            )
+        }
+
+        preferences.edit()
+            .putString("sources", array.toString())
+            .apply()
+    }
+
+    private fun loadSources() {
+        val savedData = preferences.getString("sources", null) ?: return
+
+        try {
+            val array = JSONArray(savedData)
+
+            for (index in 0 until array.length()) {
+                val item = array.getJSONObject(index)
+
+                val type = try {
+                    SourceType.valueOf(item.getString("type"))
+                } catch (_: Exception) {
+                    continue
+                }
+
+                sources.add(
+                    OBSSource(
+                        id = item.getString("id"),
+                        name = item.getString("name"),
+                        type = type,
+                        enabled = item.optBoolean("enabled", true)
+                    )
+                )
+            }
+        } catch (_: Exception) {
+            sources.clear()
+        }
     }
 }
