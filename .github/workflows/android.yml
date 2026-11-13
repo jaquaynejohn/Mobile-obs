@@ -51,7 +51,7 @@ jobs:
         run: gradle --version
 
       - name: Build Debug APK
-        run: gradle --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true assembleDebug
+        run: gradle --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true assembleDebug --stacktrace --info
 
       - name: Upload Mobile OBS APK
         uses: actions/upload-artifact@v4
