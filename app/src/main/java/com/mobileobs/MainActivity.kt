@@ -51,6 +51,10 @@ fun MobileOBSApp() {
         SceneSourceManager(context.applicationContext)
     }
 
+    val sourceTransformManager = remember {
+        SourceTransformManager(context.applicationContext)
+    }
+
     var scenes by remember {
         mutableStateOf(sceneManager.getScenes())
     }
@@ -142,10 +146,14 @@ fun MobileOBSApp() {
 
         when (selectedTab) {
             "Studio" -> {
-                PreviewPanel(
+                SourcePreviewPanel(
                     sceneName = scenes.find {
                         it.id == selectedSceneId
-                    }?.name ?: "No scene selected"
+                    }?.name ?: "No scene selected",
+                    sceneId = selectedSceneId,
+                    sources = sources,
+                    sceneSources = sceneSources,
+                    transformManager = sourceTransformManager
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -311,6 +319,7 @@ fun MobileOBSApp() {
                                         onClick = {
                                             sceneManager.deleteScene(scene.id)
                                             sceneSourceManager.removeScene(scene.id)
+                                            sourceTransformManager.removeScene(scene.id)
                                             refreshScenes()
                                         },
                                         modifier = Modifier.weight(1f),
@@ -514,6 +523,11 @@ fun MobileOBSApp() {
                                                 onClick = {
                                                     scenes.forEach { scene ->
                                                         sceneSourceManager.removeSourceFromScene(
+                                                            scene.id,
+                                                            source.id
+                                                        )
+
+                                                        sourceTransformManager.removeSource(
                                                             scene.id,
                                                             source.id
                                                         )
@@ -820,40 +834,6 @@ fun MobileOBSApp() {
                     Text("Cancel")
                 }
             }
-        )
-    }
-}
-
-@Composable
-fun PreviewPanel(sceneName: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(190.dp)
-            .background(Panel, RoundedCornerShape(16.dp))
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            "LIVE PREVIEW",
-            color = Accent,
-            fontSize = 12.sp
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            sceneName,
-            color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            "Preview rendering will be connected later",
-            color = Color.Gray,
-            fontSize = 12.sp
         )
     }
 }
