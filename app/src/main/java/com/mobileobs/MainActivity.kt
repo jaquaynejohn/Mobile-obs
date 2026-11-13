@@ -43,8 +43,16 @@ fun MobileOBSApp() {
         SceneManager(context.applicationContext)
     }
 
+    val sourceManager = remember {
+        SourceManager(context.applicationContext)
+    }
+
     var scenes by remember {
         mutableStateOf(sceneManager.getScenes())
+    }
+
+    var sources by remember {
+        mutableStateOf(sourceManager.getSources())
     }
 
     var selectedSceneId by remember {
@@ -67,9 +75,29 @@ fun MobileOBSApp() {
         mutableStateOf("")
     }
 
+    var showAddSourceDialog by remember {
+        mutableStateOf(false)
+    }
+
+    var renameSourceId by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var sourceName by remember {
+        mutableStateOf("")
+    }
+
+    var selectedSourceType by remember {
+        mutableStateOf(SourceType.SCREEN_CAPTURE)
+    }
+
     fun refreshScenes() {
         scenes = sceneManager.getScenes()
         selectedSceneId = sceneManager.getActiveScene()?.id
+    }
+
+    fun refreshSources() {
+        sources = sourceManager.getSources()
     }
 
     Column(
@@ -278,19 +306,138 @@ fun MobileOBSApp() {
             }
 
             "Sources" -> {
-                Text(
-                    "Sources",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "My Sources",
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Button(
+                        onClick = {
+                            sourceName = ""
+                            selectedSourceType = SourceType.SCREEN_CAPTURE
+                            showAddSourceDialog = true
+                        }
+                    ) {
+                        Text("+ Add Source")
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    "Screen capture, camera, images, text, browser overlays and chat will be connected here.",
-                    color = Color.Gray
+                    "${sources.size} source(s)",
+                    color = Color.Gray,
+                    fontSize = 12.sp
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (sources.isEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            "No sources yet",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            "Tap Add Source to create your first source.",
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(
+                            items = sources,
+                            key = { it.id }
+                        ) { source ->
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Panel
+                                )
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text(
+                                                source.name,
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold
+                                            )
+
+                                            Text(
+                                                source.type.name.replace("_", " "),
+                                                color = Color.Gray,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+
+                                        Switch(
+                                            checked = source.enabled,
+                                            onCheckedChange = {
+                                                sourceManager.toggleSource(source.id)
+                                                refreshSources()
+                                            }
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            onClick = {
+                                                sourceName = source.name
+                                                renameSourceId = source.id
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("Rename")
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                sourceManager.deleteSource(source.id)
+                                                refreshSources()
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("Delete")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             "Settings" -> {
@@ -420,6 +567,123 @@ fun MobileOBSApp() {
                 TextButton(
                     onClick = {
                         renameSceneId = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showAddSourceDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAddSourceDialog = false
+            },
+            title = {
+                Text("Add Source")
+            },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = sourceName,
+                        onValueChange = {
+                            sourceName = it
+                        },
+                        label = {
+                            Text("Source name")
+                        },
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        "Choose source type",
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    SourceType.values().forEach { type ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedSourceType == type,
+                                onClick = {
+                                    selectedSourceType = type
+                                }
+                            )
+
+                            Text(
+                                type.name.replace("_", " "),
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (sourceManager.addSource(sourceName, selectedSourceType)) {
+                            refreshSources()
+                            showAddSourceDialog = false
+                        }
+                    }
+                ) {
+                    Text("Add")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddSourceDialog = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (renameSourceId != null) {
+        AlertDialog(
+            onDismissRequest = {
+                renameSourceId = null
+            },
+            title = {
+                Text("Rename Source")
+            },
+            text = {
+                OutlinedTextField(
+                    value = sourceName,
+                    onValueChange = {
+                        sourceName = it
+                    },
+                    label = {
+                        Text("New source name")
+                    },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val id = renameSourceId
+
+                        if (id != null && sourceManager.renameSource(id, sourceName)) {
+                            refreshSources()
+                            renameSourceId = null
+                        }
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        renameSourceId = null
                     }
                 ) {
                     Text("Cancel")
