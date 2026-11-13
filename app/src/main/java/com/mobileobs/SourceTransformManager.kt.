@@ -1,0 +1,214 @@
+
+package com.mobileobs
+
+import android.content.Context
+import org.json.JSONArray
+import org.json.JSONObject
+
+data class SourceTransform(
+    val sceneId: String,
+    val sourceId: String,
+    var x: Float = 0f,
+    var y: Float = 0f,
+    var width: Float = 300f,
+    var height: Float = 200f,
+    var rotation: Float = 0f
+)
+
+class SourceTransformManager(context: Context) {
+
+    private val preferences = context.applicationContext
+        .getSharedPreferences("mobile_obs_source_transforms", Context.MODE_PRIVATE)
+
+    private val transforms = mutableListOf<SourceTransform>()
+
+    init {
+        loadTransforms()
+    }
+
+    fun getTransform(
+        sceneId: String,
+        sourceId: String
+    ): SourceTransform {
+        return findTransform(sceneId, sourceId)?.copy()
+            ?: SourceTransform(
+                sceneId = sceneId,
+                sourceId = sourceId
+            )
+    }
+
+    fun setTransform(
+        sceneId: String,
+        sourceId: String,
+        x: Float,
+        y: Float,
+        width: Float,
+        height: Float,
+        rotation: Float = 0f
+    ): Boolean {
+        if (sceneId.isBlank() || sourceId.isBlank()) return false
+        if (width <= 0f || height <= 0f) return false
+
+        val transform = findTransform(sceneId, sourceId)
+            ?: SourceTransform(sceneId, sourceId).also {
+                transforms.add(it)
+            }
+
+        transform.x = x
+        transform.y = y
+        transform.width = width
+        transform.height = height
+        transform.rotation = rotation
+
+        saveTransforms()
+        return true
+    }
+
+    fun moveSource(
+        sceneId: String,
+        sourceId: String,
+        x: Float,
+        y: Float
+    ): Boolean {
+        val transform = findTransform(sceneId, sourceId)
+            ?: return setTransform(
+                sceneId,
+                sourceId,
+                x,
+                y,
+                300f,
+                200f
+            )
+
+        transform.x = x
+        transform.y = y
+
+        saveTransforms()
+        return true
+    }
+
+    fun resizeSource(
+        sceneId: String,
+        sourceId: String,
+        width: Float,
+        height: Float
+    ): Boolean {
+        if (width <= 0f || height <= 0f) return false
+
+        val transform = findTransform(sceneId, sourceId)
+            ?: return setTransform(
+                sceneId,
+                sourceId,
+                0f,
+                0f,
+                width,
+                height
+            )
+
+        transform.width = width
+        transform.height = height
+
+        saveTransforms()
+        return true
+    }
+
+    fun rotateSource(
+        sceneId: String,
+        sourceId: String,
+        rotation: Float
+    ): Boolean {
+        val transform = findTransform(sceneId, sourceId)
+            ?: return setTransform(
+                sceneId,
+                sourceId,
+                0f,
+                0f,
+                300f,
+                200f,
+                rotation
+            )
+
+        transform.rotation = rotation
+
+        saveTransforms()
+        return true
+    }
+
+    fun removeSource(
+        sceneId: String,
+        sourceId: String
+    ): Boolean {
+        val removed = transforms.removeAll {
+            it.sceneId == sceneId && it.sourceId == sourceId
+        }
+
+        if (removed) saveTransforms()
+        return removed
+    }
+
+    fun removeScene(sceneId: String): Boolean {
+        val removed = transforms.removeAll {
+            it.sceneId == sceneId
+        }
+
+        if (removed) saveTransforms()
+        return removed
+    }
+
+    private fun findTransform(
+        sceneId: String,
+        sourceId: String
+    ): SourceTransform? {
+        return transforms.find {
+            it.sceneId == sceneId && it.sourceId == sourceId
+        }
+    }
+
+    private fun saveTransforms() {
+        val array = JSONArray()
+
+        transforms.forEach { transform ->
+            array.put(
+                JSONObject().apply {
+                    put("sceneId", transform.sceneId)
+                    put("sourceId", transform.sourceId)
+                    put("x", transform.x.toDouble())
+                    put("y", transform.y.toDouble())
+                    put("width", transform.width.toDouble())
+                    put("height", transform.height.toDouble())
+                    put("rotation", transform.rotation.toDouble())
+                }
+            )
+        }
+
+        preferences.edit()
+            .putString("transforms", array.toString())
+            .apply()
+    }
+
+    private fun loadTransforms() {
+        val savedData = preferences.getString("transforms", null) ?: return
+
+        try {
+            val array = JSONArray(savedData)
+
+            for (index in 0 until array.length()) {
+                val item = array.getJSONObject(index)
+
+                transforms.add(
+                    SourceTransform(
+                        sceneId = item.getString("sceneId"),
+                        sourceId = item.getString("sourceId"),
+                        x = item.optDouble("x", 0.0).toFloat(),
+                        y = item.optDouble("y", 0.0).toFloat(),
+                        width = item.optDouble("width", 300.0).toFloat(),
+                        height = item.optDouble("height", 200.0).toFloat(),
+                        rotation = item.optDouble("rotation", 0.0).toFloat()
+                    )
+                )
+            }
+        } catch (_: Exception) {
+            transforms.clear()
+        }
+    }
+}
