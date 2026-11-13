@@ -47,6 +47,10 @@ fun MobileOBSApp() {
         SourceManager(context.applicationContext)
     }
 
+    val sceneSourceManager = remember {
+        SceneSourceManager(context.applicationContext)
+    }
+
     var scenes by remember {
         mutableStateOf(sceneManager.getScenes())
     }
@@ -57,6 +61,14 @@ fun MobileOBSApp() {
 
     var selectedSceneId by remember {
         mutableStateOf(sceneManager.getActiveScene()?.id)
+    }
+
+    var sceneSources by remember {
+        mutableStateOf(
+            sceneSourceManager.getSourcesForScene(
+                sceneManager.getActiveScene()?.id ?: ""
+            )
+        )
     }
 
     var selectedTab by remember {
@@ -91,13 +103,20 @@ fun MobileOBSApp() {
         mutableStateOf(SourceType.SCREEN_CAPTURE)
     }
 
+    fun refreshSources() {
+        sources = sourceManager.getSources()
+    }
+
+    fun refreshSceneSources() {
+        sceneSources = selectedSceneId?.let {
+            sceneSourceManager.getSourcesForScene(it)
+        } ?: emptyList()
+    }
+
     fun refreshScenes() {
         scenes = sceneManager.getScenes()
         selectedSceneId = sceneManager.getActiveScene()?.id
-    }
-
-    fun refreshSources() {
-        sources = sourceManager.getSources()
+        refreshSceneSources()
     }
 
     Column(
@@ -291,6 +310,7 @@ fun MobileOBSApp() {
                                     OutlinedButton(
                                         onClick = {
                                             sceneManager.deleteScene(scene.id)
+                                            sceneSourceManager.removeScene(scene.id)
                                             refreshScenes()
                                         },
                                         modifier = Modifier.weight(1f),
@@ -306,6 +326,10 @@ fun MobileOBSApp() {
             }
 
             "Sources" -> {
+                val activeScene = scenes.find {
+                    it.id == selectedSceneId
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -323,23 +347,35 @@ fun MobileOBSApp() {
                             sourceName = ""
                             selectedSourceType = SourceType.SCREEN_CAPTURE
                             showAddSourceDialog = true
-                        }
+                        },
+                        enabled = activeScene != null
                     ) {
                         Text("+ Add Source")
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    "${sources.size} source(s)",
+                    "Scene: ${activeScene?.name ?: "None selected"}",
+                    color = Accent,
+                    fontSize = 13.sp
+                )
+
+                Text(
+                    "${sceneSources.size} source(s) in this scene",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                if (sources.isEmpty()) {
+                if (activeScene == null) {
+                    Text(
+                        "Create or select a scene before adding sources.",
+                        color = Color.Gray
+                    )
+                } else if (sceneSources.isEmpty()) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -348,16 +384,14 @@ fun MobileOBSApp() {
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            "No sources yet",
+                            "No sources in this scene",
                             color = Color.White,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
 
-                        Spacer(modifier = Modifier.height(6.dp))
-
                         Text(
-                            "Tap Add Source to create your first source.",
+                            "Tap Add Source to add one.",
                             color = Color.Gray
                         )
                     }
@@ -367,71 +401,148 @@ fun MobileOBSApp() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(
-                            items = sources,
-                            key = { it.id }
-                        ) { source ->
+                            items = sceneSources,
+                            key = { it.sourceId }
+                        ) { sceneSource ->
 
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Panel
-                                )
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp)
+                            val source = sources.find {
+                                it.id == sceneSource.sourceId
+                            }
+
+                            if (source != null) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Panel
+                                    )
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically
+                                    Column(
+                                        modifier = Modifier.padding(12.dp)
                                     ) {
-                                        Column(
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Text(
-                                                source.name,
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold
-                                            )
-
-                                            Text(
-                                                source.type.name.replace("_", " "),
-                                                color = Color.Gray,
-                                                fontSize = 11.sp
-                                            )
-                                        }
-
-                                        Switch(
-                                            checked = source.enabled,
-                                            onCheckedChange = {
-                                                sourceManager.toggleSource(source.id)
-                                                refreshSources()
-                                            }
+                                        Text(
+                                            source.name,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
                                         )
-                                    }
 
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            source.type.name.replace("_", " "),
+                                            color = Color.Gray,
+                                            fontSize = 11.sp
+                                        )
 
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        OutlinedButton(
-                                            onClick = {
-                                                sourceName = source.name
-                                                renameSourceId = source.id
-                                            },
-                                            modifier = Modifier.weight(1f)
+                                        HorizontalDivider(
+                                            color = Background,
+                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        )
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Rename")
+                                            Text(
+                                                "Visible in scene",
+                                                color = Color.White,
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+                                            Switch(
+                                                checked = sceneSource.visible,
+                                                onCheckedChange = {
+                                                    sceneSourceManager.setVisibility(
+                                                        sceneSource.sceneId,
+                                                        sceneSource.sourceId,
+                                                        it
+                                                    )
+                                                    refreshSceneSources()
+                                                }
+                                            )
                                         }
 
-                                        OutlinedButton(
-                                            onClick = {
-                                                sourceManager.deleteSource(source.id)
-                                                refreshSources()
-                                            },
-                                            modifier = Modifier.weight(1f)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Delete")
+                                            Text(
+                                                "Source enabled",
+                                                color = Color.White,
+                                                modifier = Modifier.weight(1f)
+                                            )
+
+                                            Switch(
+                                                checked = source.enabled,
+                                                onCheckedChange = {
+                                                    sourceManager.toggleSource(source.id)
+                                                    refreshSources()
+                                                }
+                                            )
                                         }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            OutlinedButton(
+                                                onClick = {
+                                                    sceneSourceManager.setLocked(
+                                                        sceneSource.sceneId,
+                                                        sceneSource.sourceId,
+                                                        !sceneSource.locked
+                                                    )
+                                                    refreshSceneSources()
+                                                },
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text(
+                                                    if (sceneSource.locked) {
+                                                        "Unlock"
+                                                    } else {
+                                                        "Lock"
+                                                    }
+                                                )
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = {
+                                                    sourceName = source.name
+                                                    renameSourceId = source.id
+                                                },
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text("Rename")
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = {
+                                                    scenes.forEach { scene ->
+                                                        sceneSourceManager.removeSourceFromScene(
+                                                            scene.id,
+                                                            source.id
+                                                        )
+                                                    }
+
+                                                    sourceManager.deleteSource(source.id)
+
+                                                    refreshSources()
+                                                    refreshSceneSources()
+                                                },
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Text("Delete")
+                                            }
+                                        }
+
+                                        Text(
+                                            if (sceneSource.locked) {
+                                                "Locked"
+                                            } else {
+                                                "Unlocked"
+                                            },
+                                            color = if (sceneSource.locked) {
+                                                Accent
+                                            } else {
+                                                Color.Gray
+                                            },
+                                            fontSize = 11.sp
+                                        )
                                     }
                                 }
                             }
@@ -469,6 +580,11 @@ fun MobileOBSApp() {
                 TextButton(
                     onClick = {
                         selectedTab = tab
+
+                        if (tab == "Sources") {
+                            refreshSources()
+                            refreshSceneSources()
+                        }
                     }
                 ) {
                     Text(
@@ -625,8 +741,23 @@ fun MobileOBSApp() {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (sourceManager.addSource(sourceName, selectedSourceType)) {
+                        val activeId = selectedSceneId
+
+                        if (
+                            activeId != null &&
+                            sourceManager.addSource(sourceName, selectedSourceType)
+                        ) {
+                            val newSource = sourceManager.getSources().lastOrNull()
+
+                            if (newSource != null) {
+                                sceneSourceManager.addSourceToScene(
+                                    activeId,
+                                    newSource.id
+                                )
+                            }
+
                             refreshSources()
+                            refreshSceneSources()
                             showAddSourceDialog = false
                         }
                     }
