@@ -18,7 +18,10 @@ data class SourceTransform(
 class SourceTransformManager(context: Context) {
 
     private val preferences = context.applicationContext
-        .getSharedPreferences("mobile_obs_source_transforms", Context.MODE_PRIVATE)
+        .getSharedPreferences(
+            "mobile_obs_source_transforms",
+            Context.MODE_PRIVATE
+        )
 
     private val transforms = mutableListOf<SourceTransform>()
 
@@ -31,10 +34,7 @@ class SourceTransformManager(context: Context) {
         sourceId: String
     ): SourceTransform {
         return findTransform(sceneId, sourceId)?.copy()
-            ?: SourceTransform(
-                sceneId = sceneId,
-                sourceId = sourceId
-            )
+            ?: SourceTransform(sceneId, sourceId)
     }
 
     fun setTransform(
@@ -72,17 +72,11 @@ class SourceTransformManager(context: Context) {
     ): Boolean {
         val transform = findTransform(sceneId, sourceId)
             ?: return setTransform(
-                sceneId,
-                sourceId,
-                x,
-                y,
-                300f,
-                200f
+                sceneId, sourceId, x, y, 300f, 200f
             )
 
         transform.x = x
         transform.y = y
-
         saveTransforms()
         return true
     }
@@ -97,17 +91,11 @@ class SourceTransformManager(context: Context) {
 
         val transform = findTransform(sceneId, sourceId)
             ?: return setTransform(
-                sceneId,
-                sourceId,
-                0f,
-                0f,
-                width,
-                height
+                sceneId, sourceId, 0f, 0f, width, height
             )
 
         transform.width = width
         transform.height = height
-
         saveTransforms()
         return true
     }
@@ -119,17 +107,10 @@ class SourceTransformManager(context: Context) {
     ): Boolean {
         val transform = findTransform(sceneId, sourceId)
             ?: return setTransform(
-                sceneId,
-                sourceId,
-                0f,
-                0f,
-                300f,
-                200f,
-                rotation
+                sceneId, sourceId, 0f, 0f, 300f, 200f, rotation
             )
 
         transform.rotation = rotation
-
         saveTransforms()
         return true
     }
@@ -168,17 +149,15 @@ class SourceTransformManager(context: Context) {
         val array = JSONArray()
 
         transforms.forEach { transform ->
-            array.put(
-                JSONObject().apply {
-                    put("sceneId", transform.sceneId)
-                    put("sourceId", transform.sourceId)
-                    put("x", transform.x.toDouble())
-                    put("y", transform.y.toDouble())
-                    put("width", transform.width.toDouble())
-                    put("height", transform.height.toDouble())
-                    put("rotation", transform.rotation.toDouble())
-                }
-            )
+            array.put(JSONObject().apply {
+                put("sceneId", transform.sceneId)
+                put("sourceId", transform.sourceId)
+                put("x", transform.x.toDouble())
+                put("y", transform.y.toDouble())
+                put("width", transform.width.toDouble())
+                put("height", transform.height.toDouble())
+                put("rotation", transform.rotation.toDouble())
+            })
         }
 
         preferences.edit()
